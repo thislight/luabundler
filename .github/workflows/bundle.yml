@@ -1,0 +1,54 @@
+name: "Bundle LuaBundler"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    name: "Build Bundle"
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        target: ["x86_64-linux-musl"]
+    steps:
+      - uses: goto-bus-stop/setup-zig@v2.0.1
+        with:
+          version: 0.9.1
+      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          repository: mdeneen/lua-stringy
+          path: native_deps/lua-stringy
+      - name: "Build dependencies"
+        run: |
+          curl -R -O http://www.lua.org/ftp/lua-5.4.4.tar.gz
+          tar zxf lua-5.4.4.tar.gz
+          mv lua-5.4.4 native_deps/lua
+          cd native_deps/lua && make CC="zig cc -target ${{ matrix.target }}" && make local
+          mkdir -p lua_modules/include
+          mkdir -p lua_modules/lib/lua/5.4
+          mkdir -p lua_modules/bin
+          mkdir -p lua_modules/share/lua/5.4
+          cp native_deps/lua/liblua.a lua_modules/lib/
+          cp -a native_deps/lua/include/ lua_modules/include/
+          cp native_deps/lua/bin/lua lua_modules/bin/lua
+          cd native_deps/lua-stringy && make CC="zig cc -target ${{ matrix.target }}" stringy.o
+          cp native_deps/lua-stringy/stringy.o lua_modules/lib/lua/5.4/
+      - name: Install LuaRocks
+        uses: leafo/gh-actions-luarocks@4.3.0
+        with:
+          withLuaPath: $GITHUB_WORKSPACE/lua_modules/bin/lua
+      
+      - name: Build bundle
+        run: |
+          mkdir -p build
+          luarocks build
+          ./lua_modules/bin/lua luabundler/init.lua resolved-paks bundle-recipe.lua --prefix=lua_modules
+          ./scripts/bootstrap.sh "./lua_modules/bin/lua luabundler/init.lua" build/luabundler-${{matrix.target}} "zig cc"
+        
+      - name: Upload product
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: luabundler-${{matrix.target}}
+          path: build/luabundler-${{matrix.target}}
+        
