@@ -1,8 +1,8 @@
-LuaBundler bundle your Lua program and its C dependencies into one executable, help you escape dependency nightmare.
+LuaBundler bundles your Lua program and its C dependencies into one executable, helps you escape dependency nightmare.
 
 ## Why LuaBundler?
 
-- Portable. LuaBundler supports platforms have a C11 compiler and able to run the Lua interperter. It uses zero magic.
+- Portable. LuaBundler supports platforms have a C11 compiler and able to run the Lua interpreter. It uses zero magic.
 - C dependencies. LuaBundler can help you bundle the C dependencies.
 - Dynamic linking is also supported.
 
