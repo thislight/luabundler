@@ -133,6 +133,9 @@ local function bundle_program(resolved_packages, main_package_name, config)
                 end
             end
         end
+        if not config.rt_external_module_searchers then
+            decls[#decls+1] = "lua_bundler_bundled_disable_external_searchers(S);"
+        end
         return table.concat(decls, "\n")
     end
 

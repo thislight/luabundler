@@ -222,6 +222,8 @@ local function bundle_recipe0(recipe, config, paks)
         error(format("recipe: unsupported output kind %q, supported \"program\"",
                      output_kind))
     end
+    local rt_conf = recipe.runtime or {}
+    local rt_ex_mod_searchers = rt_conf.external_module_searchers
     
     local entrypoint = recipe.entry_point
     expect_recipe_field("entry_point", entrypoint)
@@ -231,7 +233,9 @@ local function bundle_recipe0(recipe, config, paks)
         error(format("recipe: packages not found (%s)", table.concat(paks.notfound, ", ")))
     end
 
-    return bundler.bundle_program(paks, entrypoint)
+    return bundler.bundle_program(paks, entrypoint, {
+        rt_external_module_searchers = rt_ex_mod_searchers,
+    })
 end
 
 local function compile_recipe0(recipe, config, pakgrps, src)

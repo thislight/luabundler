@@ -1,14 +1,14 @@
--- Copyright The LuaBundler Contributors
--- SPDX: Apache-2.0
-
 return [[
+/* Copyright The LuaBundler Contributors
+SPDX: Apache-2.0
+*/
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 
 // !lua-bundler-placeholder(pre-decls)
 
@@ -45,6 +45,32 @@ extern const size_t LUA_BUNDLER_BUNDLED_PAKS_LEN;
 extern const struct lua_bundler_bundled_pak LUA_BUNDLER_BUNDLED_PAKS[];
 
 // !lua-bundler-placeholder(declarations)
+
+static int lua_bundler_bundled_get_searchers(lua_State *S) {
+  luaL_checkstack(S, 2, NULL);
+  int ret;
+  if ((ret = lua_getglobal(S, "package")) != LUA_TTABLE) {
+    luaL_error(S,
+               "bundle install_seacher error: global \"package\" is not a "
+               "table? (a %s)",
+               luaL_typename(S, -1));
+  }
+  if ((ret = lua_getfield(S, -1, "searchers")) != LUA_TTABLE) {
+    luaL_error(S,
+               "bundle install_seacher error: global \"package.searcher\" "
+               "is not a table? (a %s)",
+               luaL_typename(S, -1));
+  }
+  lua_remove(S, -2);
+  return 1;
+}
+
+static void lua_bundler_bundled_disable_external_searchers(lua_State *S) {
+  int ret = luaL_dostring(S, "for i=3,5 do package.searchers[i] = nil end");
+  if (ret != LUA_OK) {
+    lua_error(S);
+  }
+}
 
 static const char *lua_bundler_src_reader(lua_State *S, void *data,
                                           size_t *size) {
@@ -107,12 +133,8 @@ static int lua_bundler_bundled_table_copy(lua_State *S, lua_Integer start,
                                           lua_Integer length,
                                           lua_Integer target) {
   luaL_checkstack(S, 1, NULL);
-  int ret;
-  for (lua_Integer i = length - 1; i >= 0; i--) {
-    ret = lua_geti(S, -1, start + length);
-    if (ret != LUA_OK) {
-      return ret;
-    }
+  for (lua_Integer i = length; i >= 0; i--) {
+    lua_geti(S, -1, start + length);
     lua_seti(S, -2, target + length);
   }
   return LUA_OK;
@@ -120,23 +142,12 @@ static int lua_bundler_bundled_table_copy(lua_State *S, lua_Integer start,
 
 static int lua_bundler_bundled_install_searcher(lua_State *S) {
   // params:
-  luaL_checkstack(S, 3, NULL);
-  int ret;
-  if ((ret = lua_getglobal(S, "package")) != LUA_TTABLE) {
-    luaL_error(S,
-               "bundle install_seacher error: global \"package\" is not a "
-               "table? (a %s)",
-               luaL_typename(S, -1));
-  }
-  if ((ret = lua_getfield(S, -1, "searchers")) != LUA_TTABLE) {
-    luaL_error(S,
-               "bundle install_seacher error: global \"package.searcher\" "
-               "is not a table? (a %s)",
-               luaL_typename(S, -1));
-  }
+  luaL_checkstack(S, 2, NULL);
+  lua_pushcfunction(S, &lua_bundler_bundled_get_searchers);
+  lua_call(S, 0, 1);
   lua_Integer searchers_len = luaL_len(S, -1);
   if (lua_bundler_bundled_table_copy(S, 2, searchers_len - 1, 3) != LUA_OK) {
-    lua_pop(S, 2);
+    lua_pop(S, 1);
     luaL_error(S, "bundle install_searcher error: failed to inject searcher "
                   "(table_copy)");
   }
@@ -174,7 +185,8 @@ static int lua_bundler_bundled_pmain(lua_State *S) {
   lua_Integer ret = 0;
   if (lua_isfunction(S, -1)) {
     if (argcount > INT_MAX) {
-      luaL_error(S, "too many arguments (limit is %d, got %lld)", INT_MAX, argcount);
+      luaL_error(S, "too many arguments (limit is %d, got %lld)", INT_MAX,
+                 argcount);
     }
     luaL_checkstack(S, argcount, NULL);
     for (lua_Integer i = 0; i < argcount; i++) {
@@ -201,7 +213,8 @@ static int lua_bundler_bundled_pmain(lua_State *S) {
 static int luabundler_bundled_err_handler(lua_State *S) {
   const char *msg = lua_tostring(S, 1);
   if (msg == NULL) {
-    if (luaL_callmeta(S, 1, "__tostring") == LUA_OK && lua_type(S, -1) == LUA_TSTRING) {
+    if (luaL_callmeta(S, 1, "__tostring") == LUA_OK &&
+        lua_type(S, -1) == LUA_TSTRING) {
       return 1;
     } else {
       msg = lua_pushfstring(S, "(error is a %s value)", luaL_typename(S, 1));

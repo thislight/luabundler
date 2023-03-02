@@ -8,6 +8,8 @@
     - The Entry Point Module
   - Including Packages
     - Standard Libraries
+  - Runtime Options
+    - External Module Searchers
 - Resolving Packages
   - Packages Resovling
     - Prefiexed Paths
@@ -174,6 +176,41 @@ return {
   }
 }
 ````
+
+### Runtime Options
+
+You can configure runtime behaviour by "runtime" field.
+
+````lua
+-- recipe.lua
+return {
+  rev = 0,
+  output = "program",
+  entry_point = "myprogram.entrypoint",
+  included = {
+    myprogram = {"entrypoint", "utils"},
+    lua = {"*"},
+    "argparse",
+  },
+  runtime = {},
+}
+````
+
+#### External Module Searchers
+
+By default, LuaBundler only keeps the preload searcher and the bundle searcher. If you want the original searchers, set `external_module_searchers` to `true`.
+
+````lua
+return {
+  runtime = {
+    external_module_searchers = true,
+  }
+}
+````
+
+The bundle searcher is still used before the other original searchers, after the preload searcher.
+
+This option is not for stopping the program from external modules: the program can still use external modules, by `dostring`, `loadstring` and similar functions.
 
 ## Resolving Packages
 
