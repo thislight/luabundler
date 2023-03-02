@@ -104,8 +104,8 @@ archive  native lua                      ./lua_modules/lib/liblua.a
 
 ## Run bootstrap script
 
-Run bootstrap bundling script to bundle luabundler. The first argument is the luabundler, the second is the output executable name, the third is the compiler.
+Run bootstrap bundling script to bundle luabundler. The first argument is the luabundler, the second is the output executable name, the third is the compiler. You can supply options to the compiler.
 
 ````
-./scripts/bootstrap.sh "lua luabundler/init.lua" luabundler-x86_64-linux "zig cc"
+./scripts/bootstrap.sh "lua luabundler/init.lua" luabundler-x86_64-linux "zig cc -target x86_64-linux-musl"
 ````
