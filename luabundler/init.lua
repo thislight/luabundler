@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 -- Copyright The LuaBundler Contributors
 -- SPDX: Apache-2.0
 
