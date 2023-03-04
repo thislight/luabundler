@@ -12,7 +12,7 @@
     - External Module Searchers
 - Resolving Packages
   - Packages Resovling
-    - Prefiexed Paths
+    - Prefixed Paths
   - Dynamic Linking
 - Bundling Program
   - Automatic Bundling
@@ -24,21 +24,21 @@
 
 ## "Packages" and "Modules"
 
-"Package" and "modules" share similar meaning and are used frequently in this document. Saying "package", we mean the piece of the bundle. The "module" is used when describing Lua modules, whether for C modules or for Lua modules.
+"Package" and "modules" have a similar meaning and are used frequently in this document. When we say "package", we mean the part of the bundle. The "module" is used when describing Lua modules, whether for C modules or for Lua modules.
 
 ## How LuaBundler Works
 
-Read from recipe, LuaBundler will bundle all lua source files into a `.c` source file. For Lua C modules, LuaBundler only refer the "open functions" in the generated source file.
+Reading from recipe, LuaBundler bundles all the lua source files into a `.c` source file. For Lua C modules, LuaBundler referencing the "open function" (`luaopen_*`) in the generated source file.
 
-You can compile the file and link libraries (include Lua C modules) to one executable.
+You can compile the file and link libraries (including Lua C modules).
 
-At the executable starts up, LuaBundler will create a new Lua interpreter and inject a "bundle searcher" into package seachers. The bundle searcher is placed right after the preload searcher. (For the mechanism of `require()`, see https://www.lua.org/manual/5.4/manual.html#pdf-require)
+When is the executable started, LuaBundler creates a new Lua interpreter and injects a "bundle searcher" into package searchers. The bundle searcher is placed right after the preload searcher. (For the mechanism of `require()`, see https://www.lua.org/manual/5.4/manual.html#pdf-require)
 
 ## Writing a Recipe
 
-LuaBundler works around lua files called "recipes". They are regular Lua modules which returns a table can be read by LuaBundler.
+LuaBundler works around Lua files called "recipes". These are regular Lua modules that return a table that can be read by LuaBundler.
 
-> Security Warning: Read the untrusted recipe before running it. LuaBundler tries its best, but there is not guarantee that it will run in an isolated environment. The recipe might cook your computer without caution.
+> **Security warning: Read the untrusted recipe before executing it.** LuaBundler tries its best, but there is not guarantee that it will run in an isolated environment. The recipe may cook your computer if you are not careful.
 
 ### Creating a recipe
 
@@ -51,11 +51,11 @@ return {
 }
 ````
 
-You must specify field `rev`, it indicate the using recipe definition. Current LuaBundler uses `0`.
+You must specify the field `rev`, it indicates the using definition. Current number is `0`.
 
 ### A Recipe for a Program
 
-You must specifiy two fields if you want to bundle an executable: `output` and `entry_point`.
+You must specifiy the two fields when bundling an executable: `output` and `entry_point`.
 
 ````lua
 -- recipe.lua
@@ -73,7 +73,7 @@ return {
 
 #### The Entry Point Module
 
-The entry point module is a module return a function. The function will be run as the entry point of the program. Just like below:
+The entry point module is a module that returns a function. The function will be run as the entry point of the program. Just like below:
 
 ````lua
 -- myprogram/entrypoint.lua
@@ -82,9 +82,16 @@ return function(...)
 end
 ````
 
-The command arguments given by system will be passed as the arguments of the function. Regularly, the first argument is the program name.
+Started the bundled executable:
 
-The mechainism is different from the standalone Lua, here is a sample script to use the entry point with the standalone:
+````
+$ ./myprogram me!
+Hello World!    myprogram    me!
+````
+
+The command arguments given by system will be passed into the function without modification. For most OS, the first argument is the program name.
+
+The mechainism is different from the standalone Lua, that creates a global table `arg`. Here is a sample script to use the entry point function with the standalone:
 
 ````lua
 -- myprogram/init.lua
@@ -93,11 +100,13 @@ local entry_point = require "myprogram.entrypoint"
 entry_point(table.unpack(arg, 0))
 ````
 
-The entry point module is not automatically included in bundle, don't forget to include it (We will explain the `included` later).
+The unpacking must start from 0, because the program name (first argument) is placed at 0.
+
+The entry point module is not automatically included in bundle. Don't forget to include it in `included` (We will explain the `included` later).
 
 ### Including Packages
 
-The `included` field is to specify the bundled packages.
+The `included` field is for describing the bundled packages.
 
 ````lua
 -- recipe.lua
@@ -112,13 +121,13 @@ return {
 }
 ````
 
-Setting the map with an table, the key will be the parent package, the value will be interpreted as the sub package. For example:
+Setting the map with a table, the key will be the parent package, the value will be interpreted as the child package. For example:
 
 ````lua
 myprogram = {"entrypoint", "utils"}
 ````
 
-is same as
+is the same as
 ````lua
 "myporgram.entrypoint",
 "myprogram.utils",
@@ -132,7 +141,11 @@ myprogram = {"", "myprogram.utils"} -- same as "myprogram", "myprogram.utils"
 
 #### Standard Libraries
 
-`lua` package and its sub packages are handled differently in LuaBundler. `lua` package indicate the Lua interpreter and is always included. Besides, `base` and `package` standard library is also automatically included. The rest standard libraries will be bundled if you specified:
+The `lua` package and its child packages are handled differently in LuaBundler.
+
+The `lua` package specifies the Lua interpreter and is always included. The `base` (`_G` and its functions) and `package` (`require` and `package`) standard libraries are also automatically included.
+
+The following libraries are not bundled unless you specify them:
 
 - `table`
 - `utf8`
@@ -143,7 +156,7 @@ myprogram = {"", "myprogram.utils"} -- same as "myprogram", "myprogram.utils"
 - `debug`
 - `coroutine`
 
-They are represented as sub packages under `lua`. To use them, just include them like other packages:
+They are represented as child packages under `lua`. To use them, just include them like normal packages:
 
 ````lua
 -- recipe.lua
@@ -159,7 +172,7 @@ return {
 }
 ````
 
-Unlike regular modules, they will also being set as global variables. Above example will set global varables `table`, `math`, `string`, `io` to the associating module. (Just like the standalone Lua!)
+Unlike regular modules, they will also being set as global variables. The above example sets the global variables `table`, `math`, `string`, `io` to the associated module. (Just like in standalone Lua!)
 
 If you want to include all standard libraries, use "lua.*":
 
@@ -179,7 +192,7 @@ return {
 
 ### Runtime Options
 
-You can configure runtime behaviour by "runtime" field.
+You can configure the runtime behaviour using the "runtime" field.
 
 ````lua
 -- recipe.lua
@@ -198,7 +211,7 @@ return {
 
 #### External Module Searchers
 
-By default, LuaBundler only keeps the preload searcher and the bundle searcher. If you want the original searchers, set `external_module_searchers` to `true`.
+By default, LuaBundler only keeps the preload searcher and the bundle searcher. If you want to keep the original searchers, set `external_module_searchers` to `true`.
 
 ````lua
 return {
@@ -208,21 +221,21 @@ return {
 }
 ````
 
-The bundle searcher is still used before the other original searchers, after the preload searcher.
+The bundle searcher will still be used before the other original searchers, after the preload searcher.
 
-This option is not for stopping the program from external modules: the program can still use external modules, by `dostring`, `loadstring` and similar functions.
+This option does not prevent the program from using external modules: the program can still use external modules, by combining `io.open`, `dostring` and similar functions.
 
 ## Resolving Packages
 
-LuaBundler may search for three types of files:
+LuaBundler can search for three types of files:
 
 - Lua source files (`.lua`)
 - Lua C modules
 - Lua C module archive objects (`.a` and `.o`)
 
-Unless specified `--dynlink` to allow dynamic linking, LuaBundler won't search for Lua C modules.
+Unless you specify `--dynlink` to allow dynamic linking, LuaBundler won't search for Lua C modules.
 
-You can use `luabundler resolved-paks` to check the packages. Here is an example from LuaBundler (We will explain the `--prefix` later):
+You can use `luabundler resolved-paks` to check the packages. Here is an example from LuaBundler (we will explain the `--prefix` later):
 ````
 $ luabundler resolved-paks bundle-recipe.lua --prefix lua_modules/
 FileType Kind   Name                     Path                                  
@@ -241,26 +254,26 @@ archive  native stringy                  lua_modules/lib/lua/5.4/stringy.o
 archive  native lua                      lua_modules/lib/liblua.a
 ````
 
-Packages have three kinds:
+Packages are of three kinds:
 - native (native modules or module archive objects)
 - src (source file)
 - std (standard library)
 
-For "native" kind, there are two file types:
+For the "native" kind, there are two file types:
 - archive (module archive objects)
 - dyn (dynmaic library, regular C module)
 
-Without `--dynlink` option, LuaBundler will not look for regular Lua C module.
+Without the `--dynlink` option, LuaBundler will not look for any regular Lua C module.
 
 ## Package Resolving
 
-Without any options, LuaBundler uses `package.path` and `package.cpath` to search Lua source files and Lua C modules. You should avoid it since the values are defined by the host Lua standard library. 
+By default, LuaBundler uses `package.path` and `package.cpath` to search for Lua source files and Lua C modules. This method is not recommended: a) It cannot search for archive objects; and b) controlling these two variables is complex.
 
-Unless `--prefix` is defined, LuaBundler will not search for Lua C module archive objects.
+You should always specify the `--prefix` option. This will enable prefixed paths.
 
 ### Prefixed Paths
 
-When `--prefix` is defined, LuaBundler will use the prefixed paths to search modules. Here is the search order:
+When the `--prefix` specified, LuaBundler will use the prefixed paths to search modules. Here is the search order:
 
 - Lua files
 
@@ -280,37 +293,37 @@ When `--prefix` is defined, LuaBundler will use the prefixed paths to search mod
   11. `<prefix>/lib/lib?.o`
   12. `<prefix>/lib/?.o`
 
-- C modules (only when dynamic linking is allowed)
+- C modules (when dynamic linking allowed)
 
   13. `./?.<native-file-ext>`
   14. `<prefix>/lib/lua/<lua-version>/?.<native-file-ext>`
 
 ### Dynamic Linking
 
-LuaBundler can help dynamic linking by passing `--dynlink` to subcommands. You should pay attention to your linking libraries or the product may not work. For example, if your Lua compiled with dynamic library support, you may want to link `dl` for your bundle.
+LuaBundler can support dynamic linking by passing `--dynlink` to subcommands. You should pay attention to your linking libraries or the product may not work. For example, if your Lua has been compiled with dynamic library support, you may want to link `dl` for your bundle.
 
-Another library you must pay attention is the `math` standard library. It requires the `m` from C standard library. Of cause, don't forget the standard library itself. Some C standard library implementation, like musl, already bundle `dl` `m` into the `c` standard library, so it's not required to specify the two.
+Another library you need to aware of is the `math` standard library. It requires the `m` from the C standard library. Of course, don't forget the C standard library itself. Some C standard library implementations, such as musl, already bundle `dl` and `m` into the `c` standard library, so you don't need to specify the both.
 
-If you are cross building bundle, consider a C compiler with bundled libc. The builtin clang from [Zig](https://ziglang.org) is a good choice. Things like that can ease the hurt to deal with libc (they did heavy lifting dealing with the OS).
+If you want to cross-build bundles, consider a C compiler with bundled libc. The built-in clang from [Zig](https://ziglang.org) is a good choice. Things like this can ease the pain of dealing with libc.
 
-You can also dynamic link some libraries while statically bundle the others. You are on control.
+You can also dynamically link some libraries and statically bundle the others. You are in control.
 
 ## Bundling Program
 
-Before bundling, you need to check if all your package can be found by LuaBundler (and all required packages are in the recipe).
+Before bundling, you need to check that all your packages can be found by LuaBundler (and that all required packages are in the recipe).
 
 LuaBundler supports two ways for bundling:
 
 - Automatic 
-- Semi-Automatic (Recommended)
+- Semi-automatic (Recommended)
 
-Since the automatic way is not so stable (like, it depends on if your compiler can receive source code from standard input), we recommend the alternative.
+Since the automatic way is not as stable (e.g. it depends on whether your compiler can receive source code from standard input), we recommend the alternative.
 
 ### Automatic Bundling
 
-You can use `luabundler make <recipe>` to bundle automatically. It will bundle the files and calls the compiler to compile and link. For the latter, you must give the compiler command by `CC` envionment variable or `--cc` option.
+You can use `luabundler make <recipe>` for automatic bundling. It will bundle the files and call the compiler to compile and link them. For the latter, you need to pass the compiler command with the `CC` environment variable or the `--cc` option.
 
-You can specify the output file name by `-o`
+You can specify the output filename with `-o`
 
 ````
 $ CC=clang luabundler make recipe.lua --prefix=lua_modules -o test
@@ -319,12 +332,12 @@ clang -Ilua_modules/include lua_modules/lib/liblua.a -o test -
 
 ### Semi-automatic bundling
 
-Semi-auto bundling includes two steps:
+Semi-automatic bundling involves two steps:
 
-1. bundle the files into one C source file
+1. bundle the files into a C source file
 2. compile the source file
 
-To bundle the files, use `luabundler bundle <recipe>`, with `-o` option to specify the output name:
+To bundle the files, use `luabundler bundle <recipe>`, with the `-o` option to specify the output name:
 
 ````
 luabundler bundle recipe.lua --prefix=lua_modules -o myprogram.c
