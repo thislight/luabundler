@@ -2,13 +2,14 @@ return [[
 /* Copyright The LuaBundler Contributors
 SPDX: Apache-2.0
 */
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
+
 
 // !lua-bundler-placeholder(pre-decls)
 
